@@ -3,37 +3,24 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_ecs_cluster" "ecs-cluster" {
-  name = "${var.stack}-Cluster"
+  name = "${var.stack_name}-ecs-cluster"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # ECS TASK DEFINITION USING FARGATE
 # ---------------------------------------------------------------------------------------------------------------------
 
-# resource "aws_ecs_task_definition" "petclinic_taskdef" {
-#   family                = "petclinic"
-#   container_definitions = "${data.template_file.petclinic-container.rendered}"
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-
 resource "aws_ecs_task_definition" "task-def" {
-  family                   = var.family
+  family                   = "${var.task_name}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  execution_role_arn       = aws_iam_role.tasks-service-role.arn
+  execution_role_arn       = var.iam_role_arn
   cpu                      = var.fargate_cpu
   memory                   = var.fargate_memory
-#  task_role_arn            = "${aws_iam_role.ecs-tasks-service-role.arn}"
-  # container_definitions = data.template_file.petclinic-container.rendered
-  # container_definitions = file("petclinic.json")
   container_definitions = jsonencode([
     {
-      name      = "${var.family}"
-      image     = "${aws_ecr_repository.image_repo.repository_url}"
+      name      = "${var.task_name}"
+      image     = "${var.ecr_repo_url}"
       cpu       = var.fargate_cpu
       memory    = var.fargate_memory
       portMappings = [
@@ -51,31 +38,30 @@ resource "aws_ecs_task_definition" "task-def" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_ecs_service" "service" {
-  name            = "${var.stack}-Service"
+  name            = "${var.stack_name}-ecs-service"
   cluster         = aws_ecs_cluster.ecs-cluster.id
   task_definition = aws_ecs_task_definition.task-def.arn
   desired_count   = var.task_count
   launch_type     = "FARGATE"
 
   network_configuration {
-    security_groups = [aws_security_group.task-sg.id]
-    subnets         = aws_subnet.private.*.id
+    security_groups = [var.task_sg_id]
+    subnets         = var.private_subnet_ids
   }
 
   load_balancer {
-    target_group_arn = aws_alb_target_group.trgp.id
-    container_name   = var.family
+    target_group_arn = var.alb_tg_id
+    container_name   = "${var.task_name}"
     container_port   = var.container_port
   }
 
   depends_on = [
-    aws_alb_listener.alb-listener,
+    var.alb_listener,
   ]
 
   lifecycle {
     ignore_changes = [
-      # Ignore changes to cpu, memory and container definitions because these are expected
-      # to be managed by the customer, but are required for terraform
+      # Ignore changes to task_definition because these are expected to be managed by the customer, but are required for terraform
       task_definition,
     ]
   }
@@ -85,6 +71,6 @@ resource "aws_ecs_service" "service" {
 # CLOUDWATCH LOG GROUP
 # ---------------------------------------------------------------------------------------------------------------------
 
-resource "aws_cloudwatch_log_group" "petclinic-cw-lgrp" {
-  name = var.cw_log_group
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name = "${var.stack_name}-ecs-cloudwatch"
 }

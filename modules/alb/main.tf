@@ -4,22 +4,22 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_alb" "alb" {
-  name            = "${var.stack}-alb"
+  name            = "${var.stack_name}-alb"
   # subnets         = "${aws_subnet.public.*.id}"
-  subnets         = aws_subnet.public.*.id
+  subnets         = var.public_subnet_ids
   # security_groups = ["${aws_security_group.alb-sg.id}"]
-  security_groups = [aws_security_group.alb-sg.id]
+  security_groups = [var.alb_sg_id]
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # ALB TARGET GROUP
 # ---------------------------------------------------------------------------------------------------------------------
 
-resource "aws_alb_target_group" "trgp" {
-  name        = "${var.stack}-tgrp"
+resource "aws_alb_target_group" "target_group" {
+  name        = "${var.stack_name}-alb-target-group"
   port        = 8080
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
   target_type = "ip"
 }
 
@@ -33,11 +33,7 @@ resource "aws_alb_listener" "alb-listener" {
   protocol          = "HTTP"
 
   default_action {
-    target_group_arn = aws_alb_target_group.trgp.id
+    target_group_arn = aws_alb_target_group.target_group.id
     type             = "forward"
   }
-}
-
-output "alb_address" {
-  value = aws_alb.alb.dns_name
 }

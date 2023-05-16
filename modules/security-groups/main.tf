@@ -4,9 +4,9 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_security_group" "alb-sg" {
-  name        = "${var.stack}-alb-sg"
+  name        = "${var.stack_name}-alb-sg"
   description = "ALB Security Group"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
   ingress {
     protocol    = "tcp"
@@ -22,7 +22,7 @@ resource "aws_security_group" "alb-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name = "${var.stack}-alb-sg"
+    Name = "${var.stack_name}-alb-sg"
   }
 }
 
@@ -31,9 +31,9 @@ resource "aws_security_group" "alb-sg" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_security_group" "task-sg" {
-  name        = "${var.stack}-task-sg"
+  name        = "${var.stack_name}-task-sg"
   description = "Allow inbound access to ECS tasks from the ALB only"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
   ingress {
     protocol        = "tcp"
@@ -49,7 +49,7 @@ resource "aws_security_group" "task-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name = "${var.stack}-task-sg"
+    Name = "${var.stack_name}-task-sg"
   }
 }
 
@@ -58,16 +58,9 @@ resource "aws_security_group" "task-sg" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_security_group" "db-sg" {
-  name        = "${var.stack}-db-sg"
+  name        = "${var.stack_name}-db-sg"
   description = "Access to the RDS instances from the VPC"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
+  vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 8
@@ -84,6 +77,6 @@ resource "aws_security_group" "db-sg" {
   }
 
   tags = {
-    Name = "${var.stack}-db-sg"
+    Name = "${var.stack_name}-db-sg"
   }
 }
